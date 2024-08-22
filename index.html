@@ -180,18 +180,21 @@
         let workoutData = {};
 
         function createPrayerList() {
-            for (let day = 1; day <= prayerDays; day++) {
+            for (let day = 0; day < prayerDays; day++) {
                 let dayDiv = document.createElement('div');
-                dayDiv.innerHTML = `<h3>Day ${day}</h3>`;
+                let date = new Date();
+                date.setDate(date.getDate() + day);
+                dayDiv.innerHTML = `<h3>${date.toDateString()}</h3>`;
                 let prayerList = document.createElement('div');
                 prayerList.className = 'list';
 
                 for (let prayer of prayers) {
                     let prayerItem = document.createElement('div');
                     prayerItem.className = 'item';
+                    let id = `prayer-${day}-${prayer}`;
                     prayerItem.innerHTML = `
                             <span>${prayer}</span>
-                            <div class="checkbox" onclick="toggleCheckbox(this, 'prayer')"></div>
+                            <div class="checkbox" id="${id}" onclick="toggleCheckbox(this, 'prayer')"></div>
                         `;
                     prayerList.appendChild(prayerItem);
                 }
@@ -202,25 +205,29 @@
         }
 
         function createWorkoutList() {
-            for (let day = 1; day <= workoutDays; day++) {
+            for (let day = 0; day < workoutDays; day++) {
                 let dayDiv = document.createElement('div');
-                dayDiv.innerHTML = `<h3>Day ${day}</h3>`;
+                let date = new Date();
+                date.setDate(date.getDate() + day);
+                dayDiv.innerHTML = `<h3>${date.toDateString()}</h3>`;
                 let workoutList = document.createElement('div');
                 workoutList.className = 'list';
 
                 let restItem = document.createElement('div');
                 restItem.className = 'item';
+                let restId = `workout-${day}-rest`;
                 restItem.innerHTML = `
                         <span>Rest</span>
-                        <div class="checkbox" onclick="toggleCheckbox(this, 'workout', ${day}, 'rest')"></div>
+                        <div class="checkbox" id="${restId}" onclick="toggleCheckbox(this, 'workout', ${day}, 'rest')"></div>
                     `;
                 workoutList.appendChild(restItem);
 
                 let workoutItem = document.createElement('div');
                 workoutItem.className = 'item';
+                let workoutId = `workout-${day}-workout`;
                 workoutItem.innerHTML = `
                         <span>Workout</span>
-                        <div class="checkbox" onclick="toggleCheckbox(this, 'workout', ${day}, 'workout')"></div>
+                        <div class="checkbox" id="${workoutId}" onclick="toggleCheckbox(this, 'workout', ${day}, 'workout')"></div>
                     `;
                 workoutList.appendChild(workoutItem);
 
@@ -231,6 +238,7 @@
 
         function toggleCheckbox(checkbox, type, day, action) {
             checkbox.classList.toggle('checked');
+            saveCheckboxState(checkbox.id, checkbox.classList.contains('checked'));
             if (type === 'workout') {
                 let siblingCheckbox = checkbox.parentElement.parentElement.querySelector('.checkbox:not(.checked)');
                 if (siblingCheckbox) siblingCheckbox.classList.remove('checked');
@@ -242,10 +250,24 @@
             }
         }
 
+        function saveCheckboxState(id, state) {
+            localStorage.setItem(id, state);
+        }
+
+        function loadCheckboxState(id) {
+            return localStorage.getItem(id) === 'true';
+        }
+
         function resetCheckboxes(type) {
-            let container = type === 'prayer' ? prayerContainer : workoutContainer;
-            let checkboxes = container.querySelectorAll('.checkbox');
-            checkboxes.forEach(checkbox => checkbox.classList.remove('checked'));
+            let confirmReset = confirm("Are you sure you want to reset all checkboxes?");
+            if (confirmReset) {
+                let container = type === 'prayer' ? prayerContainer : workoutContainer;
+                let checkboxes = container.querySelectorAll('.checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.classList.remove('checked');
+                    saveCheckboxState(checkbox.id, false);
+                });
+            }
         }
 
         function toggleSection(id) {
@@ -255,7 +277,7 @@
 
         function openWorkoutModal(day) {
             document.getElementById('workoutModal').style.display = 'block';
-            document.getElementById('modalDay').innerText = `Day ${day} Workout`;
+            document.getElementById('modalDay').innerText = `Day ${day + 1} Workout`;
             document.getElementById('muscleGroup').value = workoutData[day] ? workoutData[day].muscleGroup : '';
             let imageContainer = document.getElementById('imageContainer');
             imageContainer.innerHTML = '';
@@ -292,7 +314,7 @@
         }
 
         function saveWorkout() {
-            let day = document.getElementById('modalDay').innerText.split(' ')[1];
+            let day = document.getElementById('modalDay').innerText.split(' ')[1] - 1;
             let muscleGroup = document.getElementById('muscleGroup').value;
             let images = [];
             document.querySelectorAll('.imageBox').forEach(box => {
@@ -306,8 +328,18 @@
             closeModal();
         }
 
-        createPrayerList();
-        createWorkoutList();
+        function initialize() {
+            createPrayerList();
+            createWorkoutList();
+
+            // Load checkbox states
+            let allCheckboxes = document.querySelectorAll('.checkbox');
+            allCheckboxes.forEach(checkbox => {
+                checkbox.classList.toggle('checked', loadCheckboxState(checkbox.id));
+            });
+        }
+
+        initialize();
     </script>
 </body>
 </html>
