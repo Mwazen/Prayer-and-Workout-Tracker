@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prayer and Workout Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chart.js/3.7.0/chart.min.css">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -27,6 +26,17 @@
         h1, h2, h3 {
             color: #e94560;
             text-align: center;
+        }
+
+        .welcome-message {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 24px;
+            color: #4ecca3;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #0f3460;
+            border-radius: 5px;
         }
 
         .icon {
@@ -166,18 +176,27 @@
             margin-top: 20px;
         }
 
-        .stats-container {
-            margin-top: 40px;
-        }
-
-        canvas {
-            max-width: 100%;
-            height: auto;
+        #languageToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
+    <button id="languageToggle" onclick="toggleLanguage()">عربي</button>
     <div class="container">
+        <div class="welcome-message">
+            Welcome, Mazen, to your Prayer and Workout Tracker!
+        </div>
+
         <h1>Prayer and Workout Tracker</h1>
 
         <!-- Prayer Section -->
@@ -192,8 +211,7 @@
         <div id="workout-container" style="display: none;"></div>
         <button class="button" onclick="resetCheckboxes('workout')">Reset Workouts</button>
 
-        <!-- SM Section -->
-        <h2>SM</h2>
+        <!-- Circle Section -->
         <i class="fas fa-times icon" onclick="toggleCircleSection()"></i>
         <div id="circle-container"></div>
 
@@ -209,26 +227,42 @@
                 <button class="button" onclick="saveWorkout()">Save Workout</button>
             </div>
         </div>
-
-        <!-- Statistics Section -->
-        <div class="stats-container">
-            <h2>Statistics</h2>
-            <canvas id="statsChart"></canvas>
-        </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/3.7.0/chart.min.js"></script>
     <script>
         const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
         const prayerDays = 30;
-        const workoutDays = 7;
+        const workoutDays = 30;
         const circleCount = 100;
         let prayerContainer = document.getElementById('prayer-container');
         let workoutContainer = document.getElementById('workout-container');
         let workoutData = {};
         let circleContainer = document.getElementById('circle-container');
+        let currentLanguage = 'en';
 
-        // Initialize localStorage
+        // Set start date to yesterday
+        let startDate = new Date();
+        startDate.setDate(startDate.getDate() - 1);
+        let prayerStartDate = new Date(startDate);
+        let workoutStartDate = new Date(startDate);
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function getDates(startDate, days) {
+            let dates = [];
+            for (let i = 0; i < days; i++) {
+                let date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                dates.push(formatDate(date));
+            }
+            return dates;
+        }
+
+        let prayerDates = getDates(prayerStartDate, prayerDays);
+        let workoutDates = getDates(workoutStartDate, workoutDays);
+
         function initializeLocalStorage() {
             if (!localStorage.getItem('circles')) {
                 let circles = Array(circleCount).fill(false);
@@ -243,9 +277,13 @@
         }
 
         function createPrayerList() {
-            for (let day = 1; day <= prayerDays; day++) {
+            prayerContainer.innerHTML = '';
+            for (let i = 0; i < prayerDays; i++) {
+                let date = new Date(prayerStartDate);
+                date.setDate(date.getDate() + i);
+                let dateStr = formatDate(date);
                 let dayDiv = document.createElement('div');
-                dayDiv.innerHTML = `<h3>Day ${day}</h3>`;
+                dayDiv.innerHTML = `<h3>${dateStr}</h3>`;
                 let prayerList = document.createElement('div');
                 prayerList.className = 'list';
 
@@ -253,9 +291,9 @@
                     let prayerItem = document.createElement('div');
                     prayerItem.className = 'item';
                     prayerItem.innerHTML = `
-                            <span>${prayer}</span>
-                            <div class="checkbox" id="prayer-${day}-${prayer}" onclick="toggleCheckbox(this, 'prayer', ${day}, '${prayer}')"></div>
-                        `;
+                                <span>${prayer}</span>
+                                <div class="checkbox" id="prayer-${dateStr}-${prayer}" onclick="toggleCheckbox(this, 'prayer', '${dateStr}', '${prayer}')"></div>
+                            `;
                     prayerList.appendChild(prayerItem);
                 }
 
@@ -266,26 +304,30 @@
         }
 
         function createWorkoutList() {
-            for (let day = 1; day <= workoutDays; day++) {
+            workoutContainer.innerHTML = '';
+            for (let i = 0; i < workoutDays; i++) {
+                let date = new Date(workoutStartDate);
+                date.setDate(date.getDate() + i);
+                let dateStr = formatDate(date);
                 let dayDiv = document.createElement('div');
-                dayDiv.innerHTML = `<h3>Day ${day}</h3>`;
+                dayDiv.innerHTML = `<h3>${dateStr}</h3>`;
                 let workoutList = document.createElement('div');
                 workoutList.className = 'list';
 
                 let restItem = document.createElement('div');
                 restItem.className = 'item';
                 restItem.innerHTML = `
-                        <span>Rest</span>
-                        <div class="checkbox" id="workout-${day}-rest" onclick="toggleCheckbox(this, 'workout', ${day}, 'rest')"></div>
-                    `;
+                            <span>${currentLanguage === 'en' ? 'Rest' : 'راحة'}</span>
+                            <div class="checkbox" id="workout-${dateStr}-rest" onclick="toggleCheckbox(this, 'workout', '${dateStr}', 'rest')"></div>
+                        `;
                 workoutList.appendChild(restItem);
 
                 let workoutItem = document.createElement('div');
                 workoutItem.className = 'item';
                 workoutItem.innerHTML = `
-                        <span>Workout</span>
-                        <div class="checkbox" id="workout-${day}-workout" onclick="toggleCheckbox(this, 'workout', ${day}, 'workout')"></div>
-                    `;
+                            <span>${currentLanguage === 'en' ? 'Workout' : 'تمرين'}</span>
+                            <div class="checkbox" id="workout-${dateStr}-workout" onclick="toggleCheckbox(this, 'workout', '${dateStr}', 'workout')"></div>
+                        `;
                 workoutList.appendChild(workoutItem);
 
                 dayDiv.appendChild(workoutList);
@@ -295,6 +337,7 @@
         }
 
         function createCircleList() {
+            circleContainer.innerHTML = '';
             for (let i = 1; i <= circleCount; i++) {
                 let circleDiv = document.createElement('div');
                 circleDiv.className = 'circle';
@@ -317,27 +360,34 @@
         }
 
         function saveState() {
-            let prayerData = {};
-            let workoutData = {};
-            for (let day = 1; day <= prayerDays; day++) {
+            let prayerData = JSON.parse(localStorage.getItem('prayerData')) || {};
+            let workoutData = JSON.parse(localStorage.getItem('workoutData')) || {};
+
+            prayerDates.forEach(date => {
+                prayerData[date] = prayerData[date] || [];
                 prayers.forEach(prayer => {
-                    let checkbox = document.getElementById(`prayer-${day}-${prayer}`);
-                    if (checkbox.classList.contains('checked')) {
-                        if (!prayerData[day]) prayerData[day] = [];
-                        prayerData[day].push(prayer);
+                    let checkbox = document.getElementById(`prayer-${date}-${prayer}`);
+                    if (checkbox && checkbox.classList.contains('checked')) {
+                        if (!prayerData[date].includes(prayer)) {
+                            prayerData[date].push(prayer);
+                        }
+                    } else {
+                        prayerData[date] = prayerData[date].filter(p => p !== prayer);
                     }
                 });
-            }
-            localStorage.setItem('prayerData', JSON.stringify(prayerData));
+            });
 
-            for (let day = 1; day <= workoutDays; day++) {
-                let restCheckbox = document.getElementById(`workout-${day}-rest`);
-                let workoutCheckbox = document.getElementById(`workout-${day}-workout`);
-                workoutData[day] = {
-                    rest: restCheckbox.classList.contains('checked'),
-                    workout: workoutCheckbox.classList.contains('checked')
-                };
-            }
+            workoutDates.forEach(date => {
+                workoutData[date] = workoutData[date] || {};
+                ['rest', 'workout'].forEach(action => {
+                    let checkbox = document.getElementById(`workout-${date}-${action}`);
+                    if (checkbox) {
+                        workoutData[date][action] = checkbox.classList.contains('checked');
+                    }
+                });
+            });
+
+            localStorage.setItem('prayerData', JSON.stringify(prayerData));
             localStorage.setItem('workoutData', JSON.stringify(workoutData));
         }
 
@@ -353,9 +403,9 @@
         function loadPrayerData() {
             let prayerData = JSON.parse(localStorage.getItem('prayerData'));
             if (!prayerData) return;
-            for (let day in prayerData) {
-                prayerData[day].forEach(prayer => {
-                    let checkbox = document.getElementById(`prayer-${day}-${prayer}`);
+            for (let date in prayerData) {
+                prayerData[date].forEach(prayer => {
+                    let checkbox = document.getElementById(`prayer-${date}-${prayer}`);
                     if (checkbox) checkbox.classList.add('checked');
                 });
             }
@@ -364,34 +414,37 @@
         function loadWorkoutData() {
             let workoutData = JSON.parse(localStorage.getItem('workoutData'));
             if (!workoutData) return;
-            for (let day in workoutData) {
-                let { rest, workout } = workoutData[day];
-                let restCheckbox = document.getElementById(`workout-${day}-rest`);
-                let workoutCheckbox = document.getElementById(`workout-${day}-workout`);
-                if (restCheckbox) restCheckbox.classList.toggle('checked', rest);
-                if (workoutCheckbox) workoutCheckbox.classList.toggle('checked', workout);
+            for (let date in workoutData) {
+                ['rest', 'workout'].forEach(action => {
+                    let checkbox = document.getElementById(`workout-${date}-${action}`);
+                    if (checkbox) checkbox.classList.toggle('checked', workoutData[date][action]);
+                });
             }
         }
 
         function loadCircleData() {
             let circles = JSON.parse(localStorage.getItem('circles'));
             if (!circles) return;
-            circles.forEach((checked, i) => {
-                let circle = document.getElementById(`circle-${i + 1}`);
+            circles.forEach((checked, index) => {
+                let circle = document.getElementById(`circle-${index + 1}`);
                 if (circle) circle.classList.toggle('checked', checked);
             });
         }
 
         function resetCheckboxes(type) {
-            if (confirm('Are you sure you want to reset all data?')) {
-                if (type === 'prayer') {
-                    document.querySelectorAll('#prayer-container .checkbox').forEach(checkbox => checkbox.classList.remove('checked'));
-                } else if (type === 'workout') {
-                    document.querySelectorAll('#workout-container .checkbox').forEach(checkbox => checkbox.classList.remove('checked'));
-                }
+            const confirmation = confirm(currentLanguage === 'en' ? 'Are you sure you want to reset?' : 'هل أنت متأكد من أنك تريد إعادة الضبط؟');
+            if (confirmation) {
+                // الكود الحالي لإعادة الضبط
+                const checkboxes = document.querySelectorAll(`.checkbox`);
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.id.includes(type)) {
+                        checkbox.classList.remove('checked');
+                    }
+                });
                 saveState();
             }
         }
+
 
         function toggleSection(sectionId) {
             let section = document.getElementById(sectionId);
@@ -399,8 +452,12 @@
         }
 
         function toggleCircleSection() {
-            let section = document.getElementById('circle-container');
-            section.style.display = section.style.display === 'none' ? 'grid' : 'none';
+            let circleSection = document.getElementById('circle-container');
+            circleSection.style.display = circleSection.style.display === 'none' ? 'grid' : 'none';
+        }
+
+        function closeModal() {
+            document.getElementById('workoutModal').style.display = 'none';
         }
 
         function addImageBox() {
@@ -408,77 +465,89 @@
             let box = document.createElement('div');
             box.className = 'imageBox';
             box.innerHTML = `
-                    <input type="file" accept="image/*" onchange="previewImage(this)">
+                    <img src="https://via.placeholder.com/150" alt="Workout Image">
                     <textarea placeholder="Add description..."></textarea>
-                    <button class="button" onclick="removeImageBox(this)">Remove Image</button>
                 `;
             container.appendChild(box);
         }
 
-        function previewImage(input) {
-            let file = input.files[0];
-            let reader = new FileReader();
-            reader.onload = function (e) {
-                let img = document.createElement('img');
-                img.src = e.target.result;
-                input.parentElement.insertBefore(img, input);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function removeImageBox(button) {
-            button.parentElement.remove();
-        }
-
         function saveWorkout() {
+            let modalDay = document.getElementById('modalDay').innerText;
             let muscleGroup = document.getElementById('muscleGroup').value;
-            let images = [];
-            document.querySelectorAll('#imageContainer .imageBox img').forEach(img => images.push(img.src));
-            workoutData = { muscleGroup, images };
+            let images = document.querySelectorAll('.imageBox img');
+            let descriptions = document.querySelectorAll('.imageBox textarea');
+
+            let workout = {
+                muscleGroup,
+                images: [],
+            };
+
+            images.forEach((img, index) => {
+                workout.images.push({
+                    src: img.src,
+                    description: descriptions[index].value
+                });
+            });
+
+            workoutData[modalDay] = workout;
             localStorage.setItem('workoutData', JSON.stringify(workoutData));
-            alert('Workout saved!');
+            closeModal();
         }
 
-        function closeModal() {
-            document.getElementById('workoutModal').style.display = 'none';
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+            document.getElementById('languageToggle').innerText = currentLanguage === 'en' ? 'عربي' : 'English';
+            createPrayerList();
+            createWorkoutList();
         }
 
-        function openModal(day) {
-            document.getElementById('modalDay').innerText = `Workout for Day ${day}`;
-            document.getElementById('workoutModal').style.display = 'block';
+        let languageData = {
+            en: {
+                welcome: 'Welcome, Mazen, to your Prayer and Workout Tracker!',
+                prayers: 'Prayers',
+                workouts: 'Workouts',
+                resetPrayers: 'Reset Prayers',
+                resetWorkouts: 'Reset Workouts',
+                rest: 'Rest',
+                workout: 'Workout',
+                confirmation: 'Are you sure you want to reset?',
+                arabic: 'عربي',
+                english: 'English'
+            },
+            ar: {
+                welcome: 'مرحبًا يا مازن في متعقب الصلاة والتمارين!',
+                prayers: 'الصلاوات',
+                workouts: 'التمارين',
+                resetPrayers: 'إعادة ضبط الصلوات',
+                resetWorkouts: 'إعادة ضبط التمارين',
+                rest: 'راحة',
+                workout: 'تمرين',
+                confirmation: 'هل أنت متأكد من أنك تريد إعادة الضبط؟',
+                arabic: 'English',
+                english: 'عربي'
+            }
+        };
+
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+            document.getElementById('languageToggle').textContent = languageData[currentLanguage].arabic;
+            document.querySelector('.welcome-message').textContent = languageData[currentLanguage].welcome;
+            document.querySelector('h2:nth-of-type(1)').textContent = languageData[currentLanguage].prayers;
+            document.querySelector('h2:nth-of-type(2)').textContent = languageData[currentLanguage].workouts;
+            document.querySelector('.button:nth-of-type(1)').textContent = languageData[currentLanguage].resetPrayers;
+            document.querySelector('.button:nth-of-type(2)').textContent = languageData[currentLanguage].resetWorkouts;
+
+            createPrayerList();
+            createWorkoutList();
         }
 
-        function renderChart() {
-            const ctx = document.getElementById('statsChart').getContext('2d');
-            const data = {
-                labels: ['Prayers', 'Workouts', 'SM'],
-                datasets: [{
-                    label: 'Progress',
-                    data: [prayerDays, workoutDays, circleCount],
-                    backgroundColor: ['rgba(233, 69, 96, 0.2)', 'rgba(233, 69, 96, 0.2)', 'rgba(233, 69, 96, 0.2)'],
-                    borderColor: ['rgba(233, 69, 96, 1)', 'rgba(233, 69, 96, 1)', 'rgba(233, 69, 96, 1)'],
-                    borderWidth: 1
-                }]
-            };
-            const config = {
-                type: 'bar',
-                data: data,
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            };
-            new Chart(ctx, config);
-        }
+        // حدث إنشاء القوائم مرة أخرى عشان تتحدّث اللغة في القائمة الجديدة  pandw
+
 
         initializeLocalStorage();
         createPrayerList();
         createWorkoutList();
         createCircleList();
-        renderChart();
     </script>
 </body>
 </html>
